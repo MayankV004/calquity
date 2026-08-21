@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       responseText = `Hello! I am your ParcelPilot Support Agent for **${account_id}**.\n\n` +
         `I can help you check order status, calculate cancellation fees, verify late pickup service credits, or escalate issues to human operations.\n\n` +
         `How can I assist you today?`;
-      
+
       if (aiModel.provider) {
         toolTraces.push({
           toolName: 'ai_model_status',
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     toolTraces.push({
       toolName: 'search_documents',
       args: { query: userQuery, account_id },
-      resultSummary: `Retrieved ${searchedDocs.chunks.length} chunks (Top source: ${searchedDocs.chunks[0]?.doc_name || 'None'})`,
+      resultSummary: `Retrieved ${searchedDocs.chunks.length} policy chunks`,
     });
 
     // Extract potential order ID from query (e.g. ORD-1001, ORD-2001)
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         args: { entity: 'orders', filterId: orderId, account_id },
         resultSummary: orderInfo
           ? `Found Order ${orderId} (Status: ${orderInfo.status}, Account: ${orderInfo.account_id})`
-          : `Order ${orderId} not found or not accessible under your account.`,
+          : `Order ${orderId} not accessible under account ${account_id}.`,
       });
     }
 
@@ -107,11 +107,25 @@ export async function POST(req: NextRequest) {
         args: { entity: 'tickets', filterId: ticketId, account_id },
         resultSummary: ticketInfo
           ? `Found Ticket ${ticketId} (Status: ${ticketInfo.status}, Assigned: ${ticketInfo.assigned_to})`
-          : `Ticket ${ticketId} not found or not accessible under your account.`,
+          : `Ticket ${ticketId} not accessible under account ${account_id}.`,
       });
     }
 
-    // 4. Try LLM Generation via Hugging Face NVIDIA Nemotron 3 Ultra model
+    // 4. Check for Multi-Tenant Access Violation
+    if (orderMatch && !orderInfo) {
+      const requestedOrderId = orderMatch[0].toUpperCase();
+      responseText = `Access Restricted / Tenant Isolation Notice:\n\n` +
+        `Order ${requestedOrderId} is not accessible under your currently selected session account (${account_id}).\n\n` +
+        `Why this happens:\n` +
+        `- Order ${requestedOrderId} is registered to another account context.\n` +
+        `- ParcelPilot enforces strict server-side multi-tenant isolation to protect customer data.\n\n` +
+        `To query ${requestedOrderId}, please switch the account tab at the top to Northstar Logistics and try your query again.`;
+
+      confidenceLevel = 'high';
+      return streamResponse(responseText, toolTraces, proposalDraft, confidenceLevel);
+    }
+
+    // 5. Try LLM Generation via Hugging Face NVIDIA Nemotron 3 Ultra model with CLEAN Output Prompting
     if (aiModel.model) {
       try {
         toolTraces.push({
@@ -126,18 +140,22 @@ export async function POST(req: NextRequest) {
 
         const { text } = await generateText({
           model: aiModel.model,
-          system: `You are ParcelPilot Support Agent, an expert customer operations AI assistant.
+          system: `You are ParcelPilot Support Agent, an executive AI assistant for customer operations.
 Current Account ID: ${account_id}
-${orderInfo ? `Active Order Info: ${JSON.stringify(orderInfo)}` : ''}
-${ticketInfo ? `Active Ticket Info: ${JSON.stringify(ticketInfo)}` : ''}
+${orderInfo ? `Retrieved Order Data: ${JSON.stringify(orderInfo)}` : ''}
+${ticketInfo ? `Retrieved Ticket Data: ${JSON.stringify(ticketInfo)}` : ''}
 
 Retrieved Policy & Agreement Knowledge Base:
 ${contextSummary}
 
-Rules:
-1. Always enforce 5-Tier Source Authority: Enterprise Agreements (Tier 1) override standard SOPs (Tier 2).
-2. Cite specific agreement titles and sections.
-3. Be clear, concise, and professional.`,
+STRICT OUTPUT FORMATTING RULES:
+1. NEVER use raw Markdown pipe tables (do NOT use | column | column |).
+2. Format responses cleanly using:
+   - Direct Executive Decision (first sentence)
+   - Bulleted justification points (- point)
+   - Exact Citation at the bottom
+3. Always enforce 5-Tier Source Authority: Enterprise Agreements (Tier 1) override standard SOPs (Tier 2).
+4. Keep explanations concise, elegant, and readable.`,
           prompt: userQuery,
         });
 
@@ -150,57 +168,54 @@ Rules:
       }
     }
 
-    // 5. Fallback RAG Logic Synthesis (if LLM API call is not available or rate-limited)
+    // 6. Clean Fallback RAG Logic Synthesis
     if (lowerQuery.includes('cancel') || lowerQuery.includes('cancellation')) {
-      if (orderMatch && !orderInfo) {
-        responseText = `Order Not Found or Accessible: Order ${orderMatch[0].toUpperCase()} could not be retrieved under your authenticated account context (${account_id}). Please verify your order reference number.`;
-        confidenceLevel = 'high';
-      } else if (orderInfo) {
+      if (orderInfo) {
         if (context.accountId === 'ACCT-001') {
-          responseText = `Cancellation Decision for Order ${orderInfo.order_id}:\n\n` +
-            `Yes, Northstar Logistics can cancel order ${orderInfo.order_id} with ₹0 cancellation fee.\n\n` +
-            `Source Authority & Justification:\n` +
-            `1. Customer Agreement Override (Tier 1 Authority): Per section 1 of the Northstar Logistics Enterprise Agreement (ACCT-001), Northstar is permitted to cancel any BOOKED shipment prior to physical pickup with zero cancellation fee, overriding standard SOP rules.\n` +
-            `2. Order Status Verification: Order ${orderInfo.order_id} is currently in status ${orderInfo.status} and has not been picked up yet.\n\n` +
-            `Citation: Northstar Logistics Enterprise Agreement (05_Northstar_Logistics_Enterprise_Agreement.pdf, Section 1)`;
+          responseText = `Cancellation Decision for Order **${orderInfo.order_id}**:\n\n` +
+            `Yes, **Northstar Logistics** can cancel order \`${orderInfo.order_id}\` with **₹0 cancellation fee**.\n\n` +
+            `**Key Justification & Precedence:**\n` +
+            `- **Enterprise Agreement Override (Tier 1 Authority):** Per Section 1 of the *Northstar Logistics Enterprise Agreement*, Northstar may cancel any BOOKED shipment prior to pickup with zero fee, overriding standard SOP rules.\n` +
+            `- **Order Status:** Order \`${orderInfo.order_id}\` is currently \`${orderInfo.status}\` and has not been picked up yet.\n\n` +
+            `*Citation:* \`Northstar Logistics Enterprise Agreement (Section 1)\``;
           confidenceLevel = 'high';
         } else if (context.accountId === 'ACCT-002') {
-          responseText = `Cancellation Decision for Order ${orderInfo.order_id}:\n\n` +
-            `Order ${orderInfo.order_id} was requested for cancellation over 60 minutes post-booking. Under standard policy, a ₹250 cancellation fee applies.\n\n` +
-            `Citation: Cancellation & Service Credit SOP v4 (03_Cancellation_and_Service_Credit_SOP_v4.pdf, Section 1)`;
+          responseText = `Cancellation Decision for Order **${orderInfo.order_id}**:\n\n` +
+            `Order \`${orderInfo.order_id}\` was requested for cancellation over 60 minutes post-booking. Under standard policy, a **₹250 cancellation fee** applies.\n\n` +
+            `*Citation:* \`Cancellation & Service Credit SOP v4 (Section 1)\``;
           confidenceLevel = 'high';
         } else {
           responseText = `Based on standard Cancellation & Service Credit SOP v4, cancellation requested within 60 minutes of booking incurs no fee, while requests after 60 minutes incur a standard ₹250 cancellation fee.`;
           confidenceLevel = 'medium';
         }
       } else {
-        responseText = `Per section 1 of Cancellation & Service Credit SOP v4, shipments in DRAFT status or BOOKED status cancelled within 60 minutes of booking incur no cancellation fee. Cancellations requested after 60 minutes incur a ₹250 fee, unless overridden by an Enterprise Agreement.`;
+        responseText = `Per Section 1 of Cancellation & Service Credit SOP v4, shipments in DRAFT or BOOKED status cancelled within 60 minutes incur no fee. Cancellations requested after 60 minutes incur a ₹250 fee, unless overridden by an Enterprise Agreement.`;
         confidenceLevel = 'high';
       }
     } else if (lowerQuery.includes('late') || lowerQuery.includes('credit') || lowerQuery.includes('service credit') || lowerQuery.includes('pickup')) {
       if (orderInfo && orderInfo.is_pickup_late) {
         const delay = orderInfo.calculated_pickup_delay_hours;
         if (context.accountId === 'ACCT-001') {
-          responseText = `Service Credit Decision for Order ${orderInfo.order_id}:\n\n` +
-            `Yes, you are eligible for a 100% Service Credit Refund (Full ₹${orderInfo.shipment_fee_inr || '4,200'} credit).\n\n` +
-            `Source Precedence & Calculation:\n` +
-            `- Actual Pickup Delay: Pickup was delayed by ${delay} hours past the window end time due to carrier fault.\n` +
-            `- Enterprise Agreement Override (Tier 1): Under Section 3 of the Northstar Logistics Enterprise Agreement, any pickup delayed by more than 1 hour due to carrier fault qualifies for a 100% service credit refund (overriding standard SOP requirement of 4+ hours for full refund).\n\n` +
-            `Citation: Northstar Logistics Enterprise Agreement (05_Northstar_Logistics_Enterprise_Agreement.pdf, Section 3)`;
+          responseText = `Service Credit Decision for Order **${orderInfo.order_id}**:\n\n` +
+            `Yes, you are eligible for a **100% Service Credit Refund** (Full ₹${orderInfo.shipment_fee_inr || '4,200'} credit).\n\n` +
+            `**Key Justification & Precedence:**\n` +
+            `- **Actual Pickup Delay:** Pickup was delayed by **${delay} hours** past the window due to carrier fault.\n` +
+            `- **Enterprise Agreement Override (Tier 1 Authority):** Section 3 of the *Northstar Logistics Enterprise Agreement* specifies that any pickup delayed by >1 hour due to carrier fault qualifies for a 100% credit (overriding the standard SOP 4-hour threshold).\n\n` +
+            `*Citation:* \`Northstar Logistics Enterprise Agreement (Section 3)\``;
           confidenceLevel = 'high';
         } else {
           const creditPercent = delay > 4 ? 100 : delay > 2 ? 50 : 0;
-          responseText = `Service Credit Decision for Order ${orderInfo.order_id}:\n\n` +
-            `Based on a pickup delay of ${delay} hours, you are eligible for a ${creditPercent}% Service Credit under section 2 of Cancellation & Service Credit SOP v4.\n\n` +
-            `Citation: Cancellation & Service Credit SOP v4 (Section 2)`;
+          responseText = `Service Credit Decision for Order **${orderInfo.order_id}**:\n\n` +
+            `Based on a pickup delay of **${delay} hours**, you are eligible for a **${creditPercent}% Service Credit** under section 2 of *Cancellation & Service Credit SOP v4*.\n\n` +
+            `*Citation:* \`Cancellation & Service Credit SOP v4 (Section 2)\``;
           confidenceLevel = 'high';
         }
       } else {
         responseText = `Service Credit Policy Overview:\n\n` +
           `Under Cancellation & Service Credit SOP v4, if a pickup is delayed due to carrier fault:\n` +
-          `- Delay > 2 Hours: Eligible for 50% Service Credit.\n` +
-          `- Delay > 4 Hours: Eligible for 100% Service Credit.\n\n` +
-          `Note: Customer-specific Enterprise Agreements (such as Northstar's) lower the 100% refund threshold to >1 hour delay. Delays due to customer fault are ineligible.`;
+          `- **Delay > 2 Hours:** Eligible for **50% Service Credit**.\n` +
+          `- **Delay > 4 Hours:** Eligible for **100% Service Credit**.\n\n` +
+          `*Note:* Customer-specific Enterprise Agreements (such as Northstar's) lower the 100% refund threshold to >1 hour delay. Delays due to customer fault are ineligible.`;
         confidenceLevel = 'high';
       }
     } else if (lowerQuery.includes('escalate') || lowerQuery.includes('human') || lowerQuery.includes('talk to ops') || lowerQuery.includes('manager')) {
@@ -227,7 +242,7 @@ Rules:
     } else {
       const topChunk = searchedDocs.chunks[0];
       if (topChunk) {
-        responseText = `Based on ${topChunk.doc_name}:\n\n${topChunk.content.slice(0, 400)}...\n\nCitation: ${topChunk.doc_name} (${topChunk.effective_date})`;
+        responseText = `Based on **${topChunk.doc_name}**:\n\n${topChunk.content.slice(0, 400)}...\n\n*Citation:* \`${topChunk.doc_name} (${topChunk.effective_date})\``;
         confidenceLevel = 'high';
       } else {
         const escProp = await createEscalation(
@@ -256,7 +271,6 @@ function streamResponse(responseText: string, toolTraces: any[], proposalDraft: 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      // Send metadata
       controller.enqueue(
         encoder.encode(
           JSON.stringify({
@@ -268,7 +282,6 @@ function streamResponse(responseText: string, toolTraces: any[], proposalDraft: 
         )
       );
 
-      // Stream text in small chunks for typewriter UX
       const chunkSize = 3;
       for (let i = 0; i < responseText.length; i += chunkSize) {
         const chunk = responseText.slice(i, i + chunkSize);

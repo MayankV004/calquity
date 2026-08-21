@@ -34,6 +34,78 @@ const ACCOUNTS = [
   { id: 'ACCT-003', name: 'Beacon Retail', shortName: 'Beacon', tier: 'Standard', csm: 'Neha Kapoor' },
 ];
 
+function renderInlineFormatting(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} className="font-bold text-[var(--text-main)]">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={i} className="px-1.5 py-0.5 rounded bg-[var(--panel-bg)] font-mono text-[11px] text-[var(--accent-orange)]">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
+function FormattedText({ content }: { content: string }) {
+  const lines = content.split('\n');
+  return (
+    <div className="space-y-1.5 text-xs sm:text-[13px] leading-relaxed">
+      {lines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={idx} className="h-1" />;
+
+        if (trimmed.startsWith('### ')) {
+          return (
+            <h4 key={idx} className="font-bold text-sm text-[var(--accent-orange)] mt-2.5 mb-1">
+              {trimmed.replace(/^###\s+/, '')}
+            </h4>
+          );
+        }
+
+        if (trimmed.startsWith('## ')) {
+          return (
+            <h3 key={idx} className="font-bold text-base text-[var(--accent-orange)] mt-3 mb-1">
+              {trimmed.replace(/^##\s+/, '')}
+            </h3>
+          );
+        }
+
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          const bulletContent = trimmed.replace(/^[-*]\s+/, '');
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-2 my-0.5">
+              <span className="text-[var(--accent-orange)] font-bold text-xs leading-5">•</span>
+              <div className="flex-1">{renderInlineFormatting(bulletContent)}</div>
+            </div>
+          );
+        }
+
+        if (/^\d+\.\s/.test(trimmed)) {
+          const numberContent = trimmed.replace(/^\d+\.\s+/, '');
+          const num = trimmed.match(/^\d+/)?.[0];
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-2 my-0.5">
+              <span className="text-[var(--accent-orange)] font-bold text-xs leading-5">{num}.</span>
+              <div className="flex-1">{renderInlineFormatting(numberContent)}</div>
+            </div>
+          );
+        }
+
+        return <p key={idx}>{renderInlineFormatting(line)}</p>;
+      })}
+    </div>
+  );
+}
+
 export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [selectedAccount, setSelectedAccount] = useState(ACCOUNTS[0]);
@@ -47,7 +119,7 @@ export default function Home() {
       role: 'assistant',
       content:
         `Welcome to ParcelPilot Support.\n\n` +
-        `You are currently signed in as ${ACCOUNTS[0].name} (${ACCOUNTS[0].id} - ${ACCOUNTS[0].tier} Plan).\n\n` +
+        `You are currently signed in as **${ACCOUNTS[0].name}** (\`${ACCOUNTS[0].id}\` - **${ACCOUNTS[0].tier} Plan**).\n\n` +
         `Ask a question about your order cancellations, late pickup service credits, or support policies below.`,
       confidence: 'high',
     },
@@ -106,7 +178,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           account_id: selectedAccount.id,
-          session_id: 'SESS-RESPONSIVE',
+          session_id: 'SESS-FORMATTED',
           messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -212,7 +284,7 @@ export default function Home() {
                       {
                         id: `welcome-${acc.id}`,
                         role: 'assistant',
-                        content: `Switched session to ${acc.name} (${acc.id} - ${acc.tier} Plan).`,
+                        content: `Switched session to **${acc.name}** (\`${acc.id}\` - **${acc.tier} Plan**).`,
                         confidence: 'high',
                       },
                     ]);
@@ -286,8 +358,8 @@ export default function Home() {
                     </span>
                   </div>
                 ) : (
-                  /* Streamed Message Text */
-                  <div className="whitespace-pre-wrap font-sans text-[12.5px] sm:text-[13.5px]">{msg.content}</div>
+                  /* Streamed Formatted Text */
+                  <FormattedText content={msg.content} />
                 )}
 
                 {/* Tool Trace Text Chips */}
@@ -343,7 +415,7 @@ export default function Home() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Verification Test Query Pills (Scrollable on Mobile) */}
+        {/* Verification Test Query Pills */}
         <div className="shrink-0 space-y-1">
           <div className="text-[9px] sm:text-[10px] font-mono uppercase text-[var(--text-sub)]">
             Suggested Verification Queries:
