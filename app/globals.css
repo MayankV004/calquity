@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg-color: #000000;
+  --card-bg: #0a0a0a;
+  --panel-bg: #121212;
+  --text-main: #f8fafc;
+  --text-sub: #a1a1aa;
+  --accent-orange: #f97316;
+  --accent-orange-hover: #ea580c;
+  --accent-orange-subtle: rgba(249, 115, 22, 0.12);
+}
+
+html.light {
+  --bg-color: #ffffff;
+  --card-bg: #f8fafc;
+  --panel-bg: #f1f5f9;
+  --text-main: #09090b;
+  --text-sub: #71717a;
+  --accent-orange: #ea580c;
+  --accent-orange-hover: #c2410c;
+  --accent-orange-subtle: rgba(234, 88, 12, 0.1);
+}
+
+html, body {
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+code, pre, kbd, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Ultra Subtle Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-orange);
+}
