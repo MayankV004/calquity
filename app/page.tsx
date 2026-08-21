@@ -34,6 +34,18 @@ const ACCOUNTS = [
   { id: 'ACCT-003', name: 'Beacon Retail', shortName: 'Beacon', tier: 'Standard', csm: 'Neha Kapoor' },
 ];
 
+function getWelcomeMessage(acc: typeof ACCOUNTS[0]): ChatMessage {
+  return {
+    id: `welcome-${acc.id}`,
+    role: 'assistant',
+    content:
+      `Welcome to ParcelPilot Support.\n\n` +
+      `You are currently signed in as **${acc.name}** (\`${acc.id}\` - **${acc.tier} Plan**).\n\n` +
+      `Ask a question about your order cancellations, late pickup service credits, or support policies below.`,
+    confidence: 'high',
+  };
+}
+
 function renderInlineFormatting(text: string) {
   const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
   return parts.map((part, i) => {
@@ -112,23 +124,43 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isLoadedRef = useRef(false);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content:
-        `Welcome to ParcelPilot Support.\n\n` +
-        `You are currently signed in as **${ACCOUNTS[0].name}** (\`${ACCOUNTS[0].id}\` - **${ACCOUNTS[0].tier} Plan**).\n\n` +
-        `Ask a question about your order cancellations, late pickup service credits, or support policies below.`,
-      confidence: 'high',
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [getWelcomeMessage(ACCOUNTS[0])]);
 
   useEffect(() => {
     const isLight = document.documentElement.classList.contains('light');
     setTheme(isLight ? 'light' : 'dark');
   }, []);
+
+  // Load chat messages from localStorage on account switch or page load
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`parcelpilot_msgs_${selectedAccount.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          isLoadedRef.current = true;
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading history:', e);
+    }
+    setMessages([getWelcomeMessage(selectedAccount)]);
+    isLoadedRef.current = true;
+  }, [selectedAccount]);
+
+  // Persist chat messages to localStorage when updated
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+    try {
+      localStorage.setItem(`parcelpilot_msgs_${selectedAccount.id}`, JSON.stringify(messages));
+    } catch (e) {
+      console.error('Error saving history:', e);
+    }
+  }, [messages, selectedAccount]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -145,6 +177,11 @@ export default function Home() {
       localStorage.setItem('parcelpilot_theme', nextTheme);
       return nextTheme;
     });
+  };
+
+  const handleClearHistory = () => {
+    localStorage.removeItem(`parcelpilot_msgs_${selectedAccount.id}`);
+    setMessages([getWelcomeMessage(selectedAccount)]);
   };
 
   const handleSend = async (queryText?: string) => {
@@ -178,7 +215,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           account_id: selectedAccount.id,
-          session_id: 'SESS-FORMATTED',
+          session_id: `SESS-${selectedAccount.id}`,
           messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -263,13 +300,21 @@ export default function Home() {
               <p className="text-[10px] sm:text-xs text-[var(--text-sub)] font-medium">Customer Operations Assistant</p>
             </div>
 
-            {/* Theme Toggle Button on Mobile */}
-            <button
-              onClick={toggleTheme}
-              className="sm:hidden px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)]"
-            >
-              {theme === 'dark' ? 'Light' : 'Dark'}
-            </button>
+            {/* Mobile Actions (Clear & Theme) */}
+            <div className="flex sm:hidden items-center gap-1.5">
+              <button
+                onClick={handleClearHistory}
+                className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors bg-[var(--card-bg)]"
+              >
+                Clear
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)]"
+              >
+                {theme === 'dark' ? 'Light' : 'Dark'}
+              </button>
+            </div>
           </div>
 
           {/* Account Switcher Tabs & Desktop Theme Switcher */}
@@ -278,17 +323,7 @@ export default function Home() {
               {ACCOUNTS.map((acc) => (
                 <button
                   key={acc.id}
-                  onClick={() => {
-                    setSelectedAccount(acc);
-                    setMessages([
-                      {
-                        id: `welcome-${acc.id}`,
-                        role: 'assistant',
-                        content: `Switched session to **${acc.name}** (\`${acc.id}\` - **${acc.tier} Plan**).`,
-                        confidence: 'high',
-                      },
-                    ]);
-                  }}
+                  onClick={() => setSelectedAccount(acc)}
                   className={`px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all duration-300 ease-out whitespace-nowrap ${
                     selectedAccount.id === acc.id
                       ? 'bg-[var(--accent-orange)] text-white shadow-md shadow-orange-500/20'
@@ -300,6 +335,14 @@ export default function Home() {
                 </button>
               ))}
             </div>
+
+            {/* Clear History Button */}
+            <button
+              onClick={handleClearHistory}
+              className="hidden sm:block px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-bg)] shadow-sm whitespace-nowrap"
+            >
+              Clear Chat
+            </button>
 
             {/* Desktop Theme Switcher */}
             <button
