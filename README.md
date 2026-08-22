@@ -90,6 +90,30 @@ The application utilizes a **single agent, tool-reasoning loop** implemented via
 | **Authentication** | **Better Auth (`better-auth`)** over plain JWTs | Plain JWTs cannot be revoked instantly. Better Auth provides Drizzle ORM database-backed sessions with HTTP-only cookies and native organization/multi-tenant scoping. |
 | **Redis REST Client** | **Native HTTP `fetch`** over NPM packages | NPM Redis client packages can introduce dependency resolution issues in serverless environments. Native HTTP `fetch` to Upstash REST API is zero-dependency, ultra-lightweight, and sub-millisecond fast. |
 
+### ⚔️ Why Vercel AI SDK Instead of LangChain / LangGraph?
+
+| Feature / Metric | Vercel AI SDK (Selected) | LangChain / LangGraph |
+| :--- | :--- | :--- |
+| **Architecture & Abstraction** | Lightweight, native TypeScript primitive functions (`generateText`, `streamText`) designed for Next.js App Router. Zero black-box overhead. | Complex graph state abstractions (`StateGraph`, `MemorySaver`, nodes, edges) that wrap standard tool loops in heavy boilerplate. |
+| **Next.js & Streaming Integration** | First-party streaming support, React hooks (`useChat`), and chunked NDJSON event streams built specifically for modern Vercel/Next.js stack. | Requires custom adapters, event stream transformers, and manual stream wrappers for Next.js App Router route handlers. |
+| **Multi-Tenant Data Security** | Explicit imperative control over tool contexts (`lib/tools.ts`) where `account_id` is bound server-side before execution. | Graph channels and state keys increase risk of state leakage or context pollution across turns if checkpointing is misconfigured. |
+| **Serverless Cold Starts & Latency** | Ultra-fast execution with minimal bundle footprint and fast serverless cold start times. | Substantial dependency tree size, increasing bundle footprint and serverless execution overhead. |
+| **Developer Ergonomics & Debugging** | Standard, clean TypeScript `async/await` loops. Simple to trace, step-debug, and maintain. | Opaque execution stack traces and state graph transitions that make root-cause debugging harder. |
+
+* **Summary Rationale:** For ParcelPilot's B2B Logistics Support Agent, we needed exact control over 5-Tier Authority evaluation, multi-tenant database isolation, and deterministic tool execution. Vercel AI SDK gives us direct, type-safe TypeScript execution and native streaming without the complexity and performance penalty of a full graph engine.
+
+### 🛡️ LLM Gateway & Fallback Models Hierarchy
+
+To ensure 99.99% operational availability and resilience against model rate limits, API timeouts, or cloud outages, ParcelPilot uses a multi-provider gateway fallback strategy (`lib/ai.ts` & `app/api/chat/route.ts`):
+
+| Fallback Level | Model Identifier | Provider / Gateway | Purpose & Target Capability |
+| :--- | :--- | :--- | :--- |
+| **Tier 1 (Primary)** | `nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16` | Hugging Face Serverless Router | Primary high-capacity model for multi-document reasoning & 5-tier authority evaluation. |
+| **Tier 2 (Fallback 1)** | `meta-llama/Llama-3.3-70B-Instruct` | Hugging Face Serverless Router | High-performance open-weights fallback if Tier 1 encounters timeouts or rate limits. |
+| **Tier 3 (Fallback 2)** | `Qwen/Qwen2.5-Coder-32B-Instruct` | Hugging Face Serverless Router | Fast, highly reliable secondary model specialized for structured data lookups. |
+| **Tier 4 (Cloud API)** | `gpt-4o` | OpenAI API (`OPENAI_API_KEY`) | Enterprise cloud API fallback if Hugging Face infrastructure is unreachable. |
+| **Tier 5 (Deterministic)** | Local RAG Synthesizer | In-Memory / PostgreSQL Vector Engine | Rule-based engine that synthesizes exact policy chunks & SQL data with 100% citation accuracy during total LLM outages. |
+
 ---
 
 ## 💡 Product Note (CalQuity Required Deliverable)
