@@ -23,6 +23,8 @@ export async function GET(req: NextRequest) {
       accountId = 'ACCT-001';
     } else if (authSession.user?.email === 'lumenworks@parcelpilot.com') {
       accountId = 'ACCT-002';
+    } else if (authSession.user?.email === 'beacon@parcelpilot.com') {
+      accountId = 'ACCT-003';
     } else if (requestedAccountId && ['ACCT-001', 'ACCT-002', 'ACCT-003'].includes(requestedAccountId)) {
       return NextResponse.json({ error: "Forbidden: Account access denied" }, { status: 403 });
     }

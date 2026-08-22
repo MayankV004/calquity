@@ -139,6 +139,35 @@ export default function Home() {
     setTheme(isLight ? 'light' : 'dark');
   }, []);
 
+  // Sync selected account tab with active Better Auth user session
+  useEffect(() => {
+    if (session?.user?.email) {
+      const email = session.user.email;
+      if (email === 'northstar@parcelpilot.com') setSelectedAccount(ACCOUNTS[0]);
+      else if (email === 'lumenworks@parcelpilot.com') setSelectedAccount(ACCOUNTS[1]);
+      else if (email === 'beacon@parcelpilot.com') setSelectedAccount(ACCOUNTS[2]);
+    }
+  }, [session?.user?.email]);
+
+  const handleSelectAccountTab = (acc: typeof ACCOUNTS[0]) => {
+    if (!session?.user) {
+      setSelectedAccount(acc);
+      return;
+    }
+
+    const currentEmail = session.user.email;
+    let authorizedAccountId = 'ACCT-001';
+    if (currentEmail === 'lumenworks@parcelpilot.com') authorizedAccountId = 'ACCT-002';
+    if (currentEmail === 'beacon@parcelpilot.com') authorizedAccountId = 'ACCT-003';
+
+    if (authorizedAccountId !== acc.id) {
+      setAuthModalOpen(true);
+      return;
+    }
+
+    setSelectedAccount(acc);
+  };
+
   // Load chat messages from API or localStorage on account switch
   useEffect(() => {
     let isCancelled = false;
@@ -407,7 +436,7 @@ export default function Home() {
               {ACCOUNTS.map((acc) => (
                 <button
                   key={acc.id}
-                  onClick={() => setSelectedAccount(acc)}
+                  onClick={() => handleSelectAccountTab(acc)}
                   className={`px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all duration-300 ease-out whitespace-nowrap ${
                     selectedAccount.id === acc.id
                       ? 'bg-[var(--accent-orange)] text-white shadow-md shadow-orange-500/20'

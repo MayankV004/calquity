@@ -231,22 +231,30 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             <p className="text-[11px] font-medium text-[var(--muted-foreground)] mb-2 flex items-center gap-1.5">
               <Building className="w-3.5 h-3.5 text-[var(--accent-orange)]" /> Quick Demo Session Switcher:
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 onClick={() => handleDemoLogin('northstar@parcelpilot.com', 'Northstar Admin')}
                 className="p-2 text-left text-[11px] rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
               >
-                <div className="font-semibold text-[var(--accent-orange)]">Northstar Enterprise</div>
-                <div className="text-[10px] text-[var(--muted-foreground)]">ACCT-001 • VIP SLA</div>
+                <div className="font-semibold text-[var(--accent-orange)] truncate">Northstar</div>
+                <div className="text-[9.5px] text-[var(--muted-foreground)] truncate">ACCT-001</div>
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoLogin('lumenworks@parcelpilot.com', 'LumenWorks Manager')}
                 className="p-2 text-left text-[11px] rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
               >
-                <div className="font-semibold text-blue-400">LumenWorks Growth</div>
-                <div className="text-[10px] text-[var(--muted-foreground)]">ACCT-002 • SOP v4</div>
+                <div className="font-semibold text-blue-400 truncate">LumenWorks</div>
+                <div className="text-[9.5px] text-[var(--muted-foreground)] truncate">ACCT-002</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('beacon@parcelpilot.com', 'Beacon Admin')}
+                className="p-2 text-left text-[11px] rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+              >
+                <div className="font-semibold text-emerald-400 truncate">Beacon</div>
+                <div className="text-[9.5px] text-[var(--muted-foreground)] truncate">ACCT-003</div>
               </button>
             </div>
           </div>

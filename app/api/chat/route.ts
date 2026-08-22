@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
       account_id = 'ACCT-001';
     } else if (authSession.user?.email === 'lumenworks@parcelpilot.com') {
       account_id = 'ACCT-002';
+    } else if (authSession.user?.email === 'beacon@parcelpilot.com') {
+      account_id = 'ACCT-003';
     } else if (requestedAccountId && ['ACCT-001', 'ACCT-002', 'ACCT-003'].includes(requestedAccountId)) {
       // Prevent other users from accessing demo accounts
       return new Response(JSON.stringify({ error: "Forbidden: Account access denied" }), { status: 403 });
