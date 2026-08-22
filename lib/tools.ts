@@ -47,11 +47,11 @@ export async function searchDocuments(
         const lowerQuery = query.toLowerCase();
         const includesDeprecatedQuery = lowerQuery.includes('deprecated') || lowerQuery.includes('v2') || lowerQuery.includes('old policy');
 
-        const dbChunks = await db.select().from(documentChunks);
+        const dbChunks = await db.select().from(documentChunks)
+          .where(sql`scope = 'general' OR (scope = 'account-specific' AND account_id = ${context.accountId})`);
 
         const candidateChunks = dbChunks.filter((chunk) => {
           if (chunk.status === 'DEPRECATED' && !includesDeprecatedQuery) return false;
-          if (chunk.scope === 'account-specific' && chunk.account_id !== context.accountId) return false;
           return true;
         });
 
