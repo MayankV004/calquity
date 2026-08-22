@@ -126,6 +126,7 @@ export default function Home() {
   const [selectedAccount, setSelectedAccount] = useState(ACCOUNTS[0]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const { data: session } = authClient.useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -141,6 +142,7 @@ export default function Home() {
   // Load chat messages from API or localStorage on account switch
   useEffect(() => {
     let isCancelled = false;
+    setInitialLoading(true);
 
     async function loadHistory() {
       try {
@@ -177,7 +179,11 @@ export default function Home() {
       }
     }
 
-    loadHistory();
+    loadHistory().finally(() => {
+      if (!isCancelled) {
+        setTimeout(() => setInitialLoading(false), 300);
+      }
+    });
 
     return () => {
       isCancelled = true;
@@ -252,6 +258,16 @@ export default function Home() {
         }),
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          throw new Error('Authentication Required: Please click "Sign In" at the top to access the assistant.');
+        } else if (res.status === 403) {
+          throw new Error('Access Denied: You do not have permission for this account.');
+        }
+        throw new Error(errorData.error || `Server responded with status ${res.status}`);
+      }
+
       if (!res.body) throw new Error('No stream body');
 
       const reader = res.body.getReader();
@@ -298,12 +314,13 @@ export default function Home() {
           }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      const errorMessage = err?.message || 'An error occurred while processing your request.';
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === asstMsgId
-            ? { ...msg, isThinking: false, content: 'An error occurred while processing your request.', confidence: 'low' }
+            ? { ...msg, isThinking: false, content: errorMessage, confidence: 'low' }
             : msg
         )
       );
@@ -315,6 +332,41 @@ export default function Home() {
   const handleConfirmProposal = (proposalId: string) => {
     handleSend(`Confirm escalation proposal ${proposalId}`);
   };
+
+  if (initialLoading) {
+    return (
+      <div className="h-screen h-[100dvh] w-full flex flex-col items-center justify-center bg-[var(--bg-color)] text-[var(--text-main)] transition-colors duration-300 p-6 font-sans">
+        <div className="max-w-sm w-full flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
+          
+          {/* Animated Logo Container */}
+          <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--card-bg)] border border-[var(--border-color)] shadow-xl overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[var(--accent-orange)]/20 via-transparent to-orange-500/10 animate-pulse" />
+            <div className="relative flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full border-2 border-[var(--accent-orange)] border-t-transparent animate-spin" />
+              <div className="absolute w-3 h-3 rounded-full bg-[var(--accent-orange)] shadow-md shadow-orange-500/50 animate-ping" />
+            </div>
+          </div>
+
+          {/* App Branding */}
+          <div className="space-y-1.5">
+            <h2 className="text-lg font-bold tracking-tight">
+              ParcelPilot <span className="text-[var(--accent-orange)]">Support</span>
+            </h2>
+            <p className="text-xs text-[var(--text-sub)] font-medium">
+              Loading {selectedAccount.name} trajectory...
+            </p>
+          </div>
+
+          {/* Skeleton Loaders */}
+          <div className="w-full space-y-2.5 pt-2">
+            <div className="h-2 w-3/4 mx-auto rounded-full bg-[var(--card-bg)] animate-pulse" />
+            <div className="h-2 w-1/2 mx-auto rounded-full bg-[var(--card-bg)] animate-pulse [animation-delay:0.2s]" />
+          </div>
+
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen h-[100dvh] max-h-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ease-out bg-[var(--bg-color)] text-[var(--text-main)]">
