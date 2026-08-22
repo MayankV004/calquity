@@ -246,7 +246,12 @@ export default function Home() {
     });
   };
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
+    try {
+      await fetch('/api/chat/history', { method: 'DELETE' });
+    } catch (e) {
+      console.warn('API clear history warning:', e);
+    }
     localStorage.removeItem(`parcelpilot_msgs_${selectedAccount.id}`);
     setMessages([getWelcomeMessage(selectedAccount)]);
   };

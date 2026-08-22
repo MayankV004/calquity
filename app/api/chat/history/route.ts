@@ -73,3 +73,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const authSession = await auth.api.getSession({ headers: req.headers });
+    if (!authSession?.session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const sessionId = authSession.session.id;
+    if (process.env.DATABASE_URL) {
+      const db = getDb();
+      if (db) {
+        await db.delete(chatMessages).where(eq(chatMessages.session_id, sessionId));
+      }
+    }
+
+    return NextResponse.json({ success: true, message: "Chat history cleared from database" });
+  } catch (err: any) {
+    console.error('Chat History Delete Error:', err);
+    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
+  }
+}
