@@ -57,6 +57,22 @@ export async function POST(req: NextRequest) {
     let proposalDraft: any = null;
     let confidenceLevel: 'high' | 'medium' | 'low' = 'high';
 
+    const faqCacheKey = `${account_id}:${lowerQuery}`;
+
+    // Redis FAQ Response Cache Lookup (<30ms instant hit)
+    if (!lowerQuery.includes('confirm') && !lowerQuery.includes('yes, escalate')) {
+      const cached = await getCachedResponse(faqCacheKey);
+      if (cached && cached.responseText) {
+        toolTraces.push({
+          toolName: 'faq_cache_hit',
+          args: { account_id, query: userQuery },
+          resultSummary: 'Retrieved from Upstash Redis Cache (<30ms)',
+        });
+        saveMessageToDb(session_id, account_id, userQuery, cached.responseText, toolTraces, cached.proposalDraft, cached.confidenceLevel || 'high');
+        return streamResponse(cached.responseText, toolTraces, cached.proposalDraft, cached.confidenceLevel || 'high');
+      }
+    }
+
     // 1. Handle Greetings & Conversational Queries
     const greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 'who are you', 'help'];
     if (greetings.includes(lowerQuery) || lowerQuery.startsWith('hi ') || lowerQuery.startsWith('hello ')) {
@@ -200,6 +216,7 @@ STRICT OUTPUT FORMATTING RULES:
 
         if (text && text.trim()) {
           responseText = text;
+          await setCachedResponse(faqCacheKey, { responseText, proposalDraft, confidenceLevel }, 3600);
           saveMessageToDb(session_id, account_id, userQuery, responseText, toolTraces, proposalDraft, confidenceLevel);
           return streamResponse(responseText, toolTraces, proposalDraft, confidenceLevel);
         }
