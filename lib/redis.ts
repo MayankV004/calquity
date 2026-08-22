@@ -1,8 +1,3 @@
-/**
- * Upstash Redis Client via Native HTTP REST API & In-Memory Fallback
- * No npm dependencies required — Uses native Next.js / Node fetch API.
- */
-
 interface RateLimitResult {
   success: boolean;
   limit: number;
@@ -10,7 +5,7 @@ interface RateLimitResult {
   reset: number;
 }
 
-// Helper to execute raw Redis commands via Upstash REST API
+// raw fetch to upstash REST endpoint avoids heavy redis npm client dependencies
 async function executeUpstashCommand(command: (string | number)[]): Promise<any> {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -41,19 +36,15 @@ async function executeUpstashCommand(command: (string | number)[]): Promise<any>
   }
 }
 
-// In-Memory Rate Limiting Fallback Map
+// fallback in-memory state when upstash env vars are missing
 const inMemoryRateMap = new Map<string, number[]>();
 
-/**
- * Sliding Window Rate Limiting (20 requests/minute per account)
- */
 export async function checkRateLimit(identifier: string): Promise<RateLimitResult> {
   const limit = 20;
   const windowSeconds = 60;
   const now = Date.now();
   const currentMinute = Math.floor(now / 60000);
 
-  // Try Upstash Redis REST
   if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
     const redisKey = `ratelimit:${identifier}:${currentMinute}`;
     const count = await executeUpstashCommand(['INCR', redisKey]);
@@ -73,7 +64,7 @@ export async function checkRateLimit(identifier: string): Promise<RateLimitResul
     }
   }
 
-  // In-Memory Fallback
+  // fallback sliding window using in-memory timestamps
   const windowMs = windowSeconds * 1000;
   const timestamps = (inMemoryRateMap.get(identifier) || []).filter((t) => now - t < windowMs);
 
@@ -97,12 +88,8 @@ export async function checkRateLimit(identifier: string): Promise<RateLimitResul
   };
 }
 
-// In-Memory Caching Fallback Map
 const inMemoryCacheMap = new Map<string, { value: any; expiresAt: number }>();
 
-/**
- * FAQ / Semantic Caching GET
- */
 export async function getCachedResponse(key: string): Promise<any | null> {
   const cacheKey = `parcelpilot_faq:${key.toLowerCase().trim()}`;
 
@@ -128,9 +115,6 @@ export async function getCachedResponse(key: string): Promise<any | null> {
   return null;
 }
 
-/**
- * FAQ / Semantic Caching SET
- */
 export async function setCachedResponse(key: string, value: any, ttlSeconds: number = 3600): Promise<void> {
   const cacheKey = `parcelpilot_faq:${key.toLowerCase().trim()}`;
   const serialized = JSON.stringify(value);

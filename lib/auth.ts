@@ -9,7 +9,7 @@ export const auth = betterAuth({
     provider: 'pg',
     schema: {
       ...schema,
-      account: schema.authAccount,
+      account: schema.authAccount, // alias prevents collision with app-level accounts table
     },
   }),
   emailAndPassword: {
@@ -19,5 +19,5 @@ export const auth = betterAuth({
     organization(),
   ],
   secret: process.env.BETTER_AUTH_SECRET || 'parcelpilot-super-secret-key-32-chars-min',
-  baseURL: process.env.BETTER_AUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  baseURL: process.env.BETTER_AUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'), // vercel preview URL fallback
 });

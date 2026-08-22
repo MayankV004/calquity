@@ -29,12 +29,9 @@ export interface EscalationDraft {
   created_at: string;
 }
 
-// In-memory store fallback for active escalation proposals across session
+// fallback state for pending escalation drafts when database is unconfigured
 const pendingEscalations = new Map<string, EscalationDraft>();
 
-/**
- * Tool 1: Document Search with Authority Metadata & Account Pre-filtering (DB-Backed)
- */
 export async function searchDocuments(
   query: string,
   context: ToolContext,

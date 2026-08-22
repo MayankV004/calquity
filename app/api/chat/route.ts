@@ -14,13 +14,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messages, account_id: requestedAccountId } = body;
 
-    // Better Auth Server Session Verification
+    // bind account_id from verified session email to prevent IDOR
     const authSession = await auth.api.getSession({ headers: req.headers });
     if (!authSession?.session) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
-    // Secure Account ID Mapping (Fixes IDOR)
     let account_id = authSession.session.activeOrganizationId || authSession.session.userId;
     if (authSession.user?.email === 'northstar@parcelpilot.com') {
       account_id = 'ACCT-001';
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
     } else if (authSession.user?.email === 'beacon@parcelpilot.com') {
       account_id = 'ACCT-003';
     } else if (requestedAccountId && ['ACCT-001', 'ACCT-002', 'ACCT-003'].includes(requestedAccountId)) {
-      // Prevent other users from accessing demo accounts
+      // block unmapped accounts from accessing demo datasets
       return new Response(JSON.stringify({ error: "Forbidden: Account access denied" }), { status: 403 });
     }
 
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest) {
     const userQuery = lastMessage?.content || '';
     const lowerQuery = userQuery.trim().toLowerCase();
 
-    // Rate Limiting Check (Distributed Redis / In-Memory Fallback)
+    // key rate limits by userId so key rotation can't bypass quota
     const rateLimit = await checkRateLimit(authSession.session.userId);
     if (!rateLimit.success) {
       const rateMsg = `⚠️ Rate Limit Exceeded:\n\nYou have reached the maximum allowed request quota (${rateLimit.limit} reqs/min) for account **${account_id}**. Please wait a minute before submitting further requests.`;
@@ -53,7 +52,6 @@ export async function POST(req: NextRequest) {
       ], null, 'low');
     }
 
-    // Track tool execution traces for UI
     const toolTraces: Array<{ toolName: string; args: any; resultSummary: string }> = [];
     let responseText = '';
     let proposalDraft: any = null;
@@ -61,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     const faqCacheKey = `${account_id}:${lowerQuery}`;
 
-    // Redis FAQ Response Cache Lookup (<30ms instant hit)
+    // bypass RAG & model gateway on cache hit
     if (!lowerQuery.includes('confirm') && !lowerQuery.includes('yes, escalate')) {
       const cached = await getCachedResponse(faqCacheKey);
       if (cached && cached.responseText) {

@@ -4,7 +4,7 @@ export function getAIModel(fallbackIndex: number = 0) {
   const hfToken = process.env.HF_TOKEN;
   const openAiKey = process.env.OPENAI_API_KEY;
 
-  // Priority 1: High-Speed OpenAI API (if configured)
+  // prefer openai if key exists for fast TTFT
   if (openAiKey) {
     const openai = createOpenAI({ apiKey: openAiKey });
     return {
@@ -34,6 +34,7 @@ export function getAIModel(fallbackIndex: number = 0) {
       apiKey: hfToken,
     });
 
+    // clamp index if fallback depth exceeds available models
     const selected = hfModels[Math.min(fallbackIndex, hfModels.length - 1)];
     return {
       model: huggingface(selected.modelId),

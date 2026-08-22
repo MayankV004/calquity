@@ -11,13 +11,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const requestedAccountId = searchParams.get('account_id') || 'ACCT-001';
 
-    // Better Auth Server Session Verification
+    // bind session user to mapped demo account
     const authSession = await auth.api.getSession({ headers: req.headers });
     if (!authSession?.session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Secure Account ID Mapping (Fixes IDOR)
     let accountId = authSession.session.activeOrganizationId || authSession.session.userId;
     if (authSession.user?.email === 'northstar@parcelpilot.com') {
       accountId = 'ACCT-001';
@@ -29,8 +28,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: Account access denied" }, { status: 403 });
     }
 
-    // Default to the user's secure account ID if they try to access something else
-    // Or if they requested their own, we just use it (it matches)
     const sessionId = authSession.session.id;
 
     if (!process.env.DATABASE_URL) {
