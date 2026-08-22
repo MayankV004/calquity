@@ -71,8 +71,29 @@ export const escalations = pgTable('escalations', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const chatSessions = pgTable('chat_sessions', {
+  id: varchar('id', { length: 128 }).primaryKey(),
+  account_id: varchar('account_id', { length: 64 }).notNull(),
+  title: text('title'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const chatMessages = pgTable('chat_messages', {
+  id: varchar('id', { length: 128 }).primaryKey(),
+  session_id: varchar('session_id', { length: 128 }).notNull(),
+  role: varchar('role', { length: 32 }).notNull(),
+  content: text('content').notNull(),
+  tool_traces: text('tool_traces'),
+  proposal_draft: text('proposal_draft'),
+  confidence: varchar('confidence', { length: 32 }),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
 export type Account = typeof accounts.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
 export type DocumentChunk = typeof documentChunks.$inferSelect;
 export type Escalation = typeof escalations.$inferSelect;
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;

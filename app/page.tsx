@@ -133,23 +133,50 @@ export default function Home() {
     setTheme(isLight ? 'light' : 'dark');
   }, []);
 
-  // Load chat messages from localStorage on account switch or page load
+  // Load chat messages from API or localStorage on account switch
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`parcelpilot_msgs_${selectedAccount.id}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
-          isLoadedRef.current = true;
-          return;
+    let isCancelled = false;
+
+    async function loadHistory() {
+      try {
+        const res = await fetch(`/api/chat/history?account_id=${selectedAccount.id}&session_id=SESS-101`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.messages && data.messages.length > 0 && !isCancelled) {
+            setMessages(data.messages);
+            isLoadedRef.current = true;
+            return;
+          }
         }
+      } catch (err) {
+        console.warn('API history fetch warning:', err);
       }
-    } catch (e) {
-      console.error('Error loading history:', e);
+
+      try {
+        const saved = localStorage.getItem(`parcelpilot_msgs_${selectedAccount.id}`);
+        if (saved && !isCancelled) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed);
+            isLoadedRef.current = true;
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Error loading localStorage history:', e);
+      }
+
+      if (!isCancelled) {
+        setMessages([getWelcomeMessage(selectedAccount)]);
+        isLoadedRef.current = true;
+      }
     }
-    setMessages([getWelcomeMessage(selectedAccount)]);
-    isLoadedRef.current = true;
+
+    loadHistory();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedAccount]);
 
   // Persist chat messages to localStorage when updated

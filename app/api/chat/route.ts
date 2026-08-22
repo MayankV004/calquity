@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { searchDocuments, queryAccountData, createEscalation, ToolContext } from '@/lib/tools';
 import { getAIModel } from '@/lib/ai';
 import { generateText } from 'ai';
+import { getDb } from '@/db';
+import { chatSessions, chatMessages } from '@/db/schema';
+import { checkRateLimit, getCachedResponse, setCachedResponse } from '@/lib/redis';
 
 export const runtime = 'nodejs';
 
@@ -19,30 +22,38 @@ export async function POST(req: NextRequest) {
     const userQuery = lastMessage?.content || '';
     const lowerQuery = userQuery.trim().toLowerCase();
 
+    // Rate Limiting Check (Distributed Redis / In-Memory Fallback)
+    const rateLimit = await checkRateLimit(account_id);
+    if (!rateLimit.success) {
+      const rateMsg = `⚠️ Rate Limit Exceeded:\n\nYou have reached the maximum allowed request quota (${rateLimit.limit} reqs/min) for account **${account_id}**. Please wait a minute before submitting further requests.`;
+      return streamResponse(rateMsg, [
+        { toolName: 'rate_limiter', args: { account_id }, resultSummary: `Quota Reached (Remaining: ${rateLimit.remaining}/${rateLimit.limit})` }
+      ], null, 'low');
+    }
+
     // Track tool execution traces for UI
     const toolTraces: Array<{ toolName: string; args: any; resultSummary: string }> = [];
     let responseText = '';
     let proposalDraft: any = null;
     let confidenceLevel: 'high' | 'medium' | 'low' = 'high';
 
-    // Get configured AI model (Hugging Face NVIDIA Nemotron 3 Ultra or OpenAI)
-    const aiModel = getAIModel();
-
     // 1. Handle Greetings & Conversational Queries
     const greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 'who are you', 'help'];
     if (greetings.includes(lowerQuery) || lowerQuery.startsWith('hi ') || lowerQuery.startsWith('hello ')) {
+      const primaryAi = getAIModel(0);
       responseText = `Hello! I am your ParcelPilot Support Agent for **${account_id}**.\n\n` +
         `I can help you check order status, calculate cancellation fees, verify late pickup service credits, or escalate issues to human operations.\n\n` +
         `How can I assist you today?`;
 
-      if (aiModel.provider) {
+      if (primaryAi.provider) {
         toolTraces.push({
           toolName: 'ai_model_status',
-          args: { provider: aiModel.provider },
-          resultSummary: `Active Model: ${aiModel.provider}`,
+          args: { provider: primaryAi.provider },
+          resultSummary: `Active Model Gateway: ${primaryAi.provider}`,
         });
       }
 
+      saveMessageToDb(session_id, account_id, userQuery, responseText, toolTraces, proposalDraft, confidenceLevel);
       return streamResponse(responseText, toolTraces, proposalDraft, confidenceLevel);
     }
 
@@ -64,6 +75,7 @@ export async function POST(req: NextRequest) {
       });
 
       responseText = `Escalation Confirmed!\n\nYour request has been submitted to the ParcelPilot Human Operations Queue. Support Ticket TKT-682 has been generated under your account (${account_id}). A member of our operational staff will reach out shortly.`;
+      saveMessageToDb(session_id, account_id, userQuery, responseText, toolTraces, proposalDraft, confidenceLevel);
       return streamResponse(responseText, toolTraces, proposalDraft, confidenceLevel);
     }
 
@@ -122,16 +134,20 @@ export async function POST(req: NextRequest) {
         `To query ${requestedOrderId}, please switch the account tab at the top to Northstar Logistics and try your query again.`;
 
       confidenceLevel = 'high';
+      saveMessageToDb(session_id, account_id, userQuery, responseText, toolTraces, proposalDraft, confidenceLevel);
       return streamResponse(responseText, toolTraces, proposalDraft, confidenceLevel);
     }
 
-    // 5. Try LLM Generation via Hugging Face NVIDIA Nemotron 3 Ultra model with CLEAN Output Prompting
-    if (aiModel.model) {
+    // 5. LLM Gateway Generation with Multi-Model Fallback Chain (Nemotron -> Llama-3.3 -> Qwen -> Fallback)
+    for (let fallbackIdx = 0; fallbackIdx < 3; fallbackIdx++) {
+      const aiModel = getAIModel(fallbackIdx);
+      if (!aiModel.model) break;
+
       try {
         toolTraces.push({
           toolName: 'ai_model_invoke',
-          args: { provider: aiModel.provider },
-          resultSummary: `Calling ${aiModel.provider}`,
+          args: { provider: aiModel.provider, fallbackLevel: fallbackIdx },
+          resultSummary: `Invoking Gateway: ${aiModel.provider}`,
         });
 
         const contextSummary = searchedDocs.chunks
@@ -161,10 +177,11 @@ STRICT OUTPUT FORMATTING RULES:
 
         if (text && text.trim()) {
           responseText = text;
+          saveMessageToDb(session_id, account_id, userQuery, responseText, toolTraces, proposalDraft, confidenceLevel);
           return streamResponse(responseText, toolTraces, proposalDraft, confidenceLevel);
         }
       } catch (aiErr: any) {
-        console.warn('AI Model Call Warning (falling back to RAG synthesis):', aiErr?.message || aiErr);
+        console.warn(`AI Model Fallback Warning (Level ${fallbackIdx} - ${aiModel.provider}):`, aiErr?.message || aiErr);
       }
     }
 
@@ -307,4 +324,49 @@ function streamResponse(responseText: string, toolTraces: any[], proposalDraft: 
       'Connection': 'keep-alive',
     },
   });
+}
+
+async function saveMessageToDb(
+  sessionId: string,
+  accountId: string,
+  userQuery: string,
+  assistantResponse: string,
+  toolTraces: any[],
+  proposalDraft: any,
+  confidence: string
+) {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const db = getDb();
+    if (!db) return;
+
+    await db.insert(chatSessions).values({
+      id: sessionId,
+      account_id: accountId,
+      title: userQuery ? userQuery.slice(0, 50) : 'New Session',
+    }).onConflictDoNothing();
+
+    if (userQuery) {
+      const userMsgId = `MSG-U-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      await db.insert(chatMessages).values({
+        id: userMsgId,
+        session_id: sessionId,
+        role: 'user',
+        content: userQuery,
+      }).onConflictDoNothing();
+    }
+
+    const astMsgId = `MSG-A-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    await db.insert(chatMessages).values({
+      id: astMsgId,
+      session_id: sessionId,
+      role: 'assistant',
+      content: assistantResponse,
+      tool_traces: toolTraces ? JSON.stringify(toolTraces) : null,
+      proposal_draft: proposalDraft ? JSON.stringify(proposalDraft) : null,
+      confidence: confidence,
+    }).onConflictDoNothing();
+  } catch (err) {
+    console.warn('DB Message Persistence Warning:', err);
+  }
 }

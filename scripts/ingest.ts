@@ -108,6 +108,39 @@ async function main() {
       );
     `);
 
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS chat_sessions (
+        id VARCHAR(128) PRIMARY KEY,
+        account_id VARCHAR(64) NOT NULL,
+        title TEXT,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id VARCHAR(128) PRIMARY KEY,
+        session_id VARCHAR(128) NOT NULL,
+        role VARCHAR(32) NOT NULL,
+        content TEXT NOT NULL,
+        tool_traces TEXT,
+        proposal_draft TEXT,
+        confidence VARCHAR(32),
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `);
+
+    try {
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS doc_chunks_embedding_hnsw_idx 
+        ON document_chunks USING hnsw (embedding vector_cosine_ops);
+      `);
+      console.log('⚡ HNSW vector index verified/created.');
+    } catch (hnswErr) {
+      console.warn('⚠️ HNSW Index creation note:', hnswErr);
+    }
+
     // Ingest Accounts
     console.log('Uploading accounts to Neon PostgreSQL...');
     for (const acc of dataset.accounts) {
