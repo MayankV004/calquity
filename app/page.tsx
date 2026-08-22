@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import AuthModal from '@/app/components/AuthModal';
+import { authClient } from '@/lib/auth-client';
+import { Lock, LogOut, User } from 'lucide-react';
 
 interface ToolTrace {
   toolName: string;
@@ -123,6 +126,8 @@ export default function Home() {
   const [selectedAccount, setSelectedAccount] = useState(ACCOUNTS[0]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const { data: session } = authClient.useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isLoadedRef = useRef(false);
 
@@ -378,10 +383,38 @@ export default function Home() {
             >
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
+
+            {/* Authentication Button */}
+            {session?.user ? (
+              <button
+                onClick={() => authClient.signOut()}
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                title={`Logged in as ${session.user.email}`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{session.user.name || session.user.email.split('@')[0]}</span>
+                <LogOut className="w-3 h-3 ml-1" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[var(--accent-orange)] text-white hover:opacity-90 transition-all flex items-center gap-1.5 shadow-md shadow-orange-500/20 whitespace-nowrap"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
 
         </div>
       </header>
+
+      {/* Better Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
+      />
 
       {/* Main Single-Viewport Container */}
       <main className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-4 sm:px-6 py-2 flex flex-col justify-between gap-2.5 sm:gap-3 overflow-hidden">

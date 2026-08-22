@@ -131,6 +131,64 @@ async function main() {
       );
     `);
 
+    // Better Auth Tables
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "user" (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        email_verified BOOLEAN DEFAULT FALSE NOT NULL,
+        image TEXT,
+        role TEXT DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "session" (
+        id TEXT PRIMARY KEY,
+        expires_at TIMESTAMP NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        user_id TEXT NOT NULL REFERENCES "user"(id),
+        active_organization_id TEXT
+      );
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "organization" (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT UNIQUE,
+        logo TEXT,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        metadata TEXT
+      );
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "account" (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        user_id TEXT NOT NULL REFERENCES "user"(id),
+        access_token TEXT,
+        refresh_token TEXT,
+        id_token TEXT,
+        access_token_expires_at TIMESTAMP,
+        refresh_token_expires_at TIMESTAMP,
+        scope TEXT,
+        password TEXT,
+        issuer TEXT,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `);
+
     try {
       await db.execute(sql`
         CREATE INDEX IF NOT EXISTS doc_chunks_embedding_hnsw_idx 

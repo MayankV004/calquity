@@ -5,6 +5,7 @@ import { generateText } from 'ai';
 import { getDb } from '@/db';
 import { chatSessions, chatMessages } from '@/db/schema';
 import { checkRateLimit, getCachedResponse, setCachedResponse } from '@/lib/redis';
+import { auth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -13,9 +14,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messages, account_id = 'ACCT-001', session_id = 'SESS-101' } = body;
 
+    // Better Auth Server Session Verification
+    let effectiveAccountId = account_id;
+    let effectiveSessionId = session_id;
+    try {
+      const authSession = await auth.api.getSession({ headers: req.headers });
+      if (authSession?.session) {
+        if (authSession.session.activeOrganizationId) {
+          effectiveAccountId = authSession.session.activeOrganizationId;
+        }
+        effectiveSessionId = authSession.session.id;
+      }
+    } catch (authErr) {
+      // Fallback to simulated context
+    }
+
     const context: ToolContext = {
-      accountId: account_id,
-      sessionId: session_id,
+      accountId: effectiveAccountId,
+      sessionId: effectiveSessionId,
     };
 
     const lastMessage = messages?.[messages.length - 1];
@@ -23,7 +39,7 @@ export async function POST(req: NextRequest) {
     const lowerQuery = userQuery.trim().toLowerCase();
 
     // Rate Limiting Check (Distributed Redis / In-Memory Fallback)
-    const rateLimit = await checkRateLimit(account_id);
+    const rateLimit = await checkRateLimit(effectiveAccountId);
     if (!rateLimit.success) {
       const rateMsg = `⚠️ Rate Limit Exceeded:\n\nYou have reached the maximum allowed request quota (${rateLimit.limit} reqs/min) for account **${account_id}**. Please wait a minute before submitting further requests.`;
       return streamResponse(rateMsg, [
