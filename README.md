@@ -3,22 +3,6 @@
 
 A production-grade, multi-tenant **AI Customer Support Agent System** built for **ParcelPilot** (B2B Logistics Platform). Powered by **Next.js 16 (App Router)**, **TypeScript**, **Vercel AI SDK**, **Neon PostgreSQL with `pgvector` (HNSW indexing)** via **Drizzle ORM**, **Upstash Redis REST** (rate limiting & semantic caching), and **Better Auth** (`better-auth`) for enterprise session authentication.
 
----
-
-## 📋 Quick Links & Submission Deliverables
-
-| Deliverable | Details / Link |
-| :--- | :--- |
-| **GitHub Repository** | [CalQuity ParcelPilot AI Support Agent Repo](https://github.com/MayankV004/calquity) |
-| **Hosted Application** | [https://parcelpilot.vercel.app](https://parcelpilot.vercel.app) |
-| **Demo Video (5 Mins)** | [Watch 5-Minute Solution Walkthrough & Architecture Video](https://youtu.be/demo-video-link) |
-| **Submission Form** | [CalQuity Submission Form](https://forms.gle/hLGBrDrNRmK7UAbv6) |
-| **Architecture Note** | [docs/ARCHITECTURE.md](file:///home/streamliner/calquity/docs/ARCHITECTURE.md) |
-| **Product Note** | [docs/PRD.md](file:///home/streamliner/calquity/docs/PRD.md) |
-| **Security Architecture** | [docs/SECURITY.md](file:///home/streamliner/calquity/docs/SECURITY.md) |
-| **Assessment Comparison Report** | [calquity_assessment_comparison.md](file:///home/streamliner/.gemini/antigravity-ide/brain/97cc5dc6-d5e6-4046-bcc3-4d75015b8343/calquity_assessment_comparison.md) |
-
----
 
 ## 🌟 Key System Capabilities & Architecture
 
@@ -265,6 +249,6 @@ calquity/
 
 ## ✉️ Contact & Submission Info
 
-- **Author:** Mayank V.
+- **Author:** Mayank Verma
 - **Role Application:** AI Engineer (AI Systems) — CalQuity
 - **Repository:** [https://github.com/MayankV004/calquity](https://github.com/MayankV004/calquity)
