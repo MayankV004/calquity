@@ -521,7 +521,7 @@ export default function Home() {
       />
 
       {/* Main Single-Viewport Container */}
-      <main className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-3 sm:px-6 pt-2 pb-0 flex flex-col justify-between overflow-hidden">
+      <main className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-3 sm:px-6 pt-2 pb-2 sm:pb-4 flex flex-col justify-between overflow-hidden">
         
         {/* Active Account Status Bar */}
         <div className="shrink-0 py-2 px-3 sm:py-3 sm:px-5 rounded-xl sm:rounded-2xl flex flex-row items-center justify-between text-[10px] sm:text-xs gap-1.5 transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm border border-zinc-800/10 dark:border-zinc-800/50 mb-2">
@@ -534,7 +534,7 @@ export default function Home() {
         </div>
 
         {/* Responsive Chat Stream Container */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-0.5 sm:px-1 space-y-3.5 no-scrollbar pb-6">
+        <div className="flex-1 min-h-0 overflow-y-auto px-0.5 sm:px-1 space-y-3.5 no-scrollbar pb-10 sm:pb-16">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
               <div
@@ -623,7 +623,7 @@ export default function Home() {
         </div>
 
         {/* ChatGPT Style Floating Bottom Bar */}
-        <div className="shrink-0 pt-2 pb-5 sm:pb-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] bg-[var(--bg-color)]/95 backdrop-blur-md border-t border-zinc-800/10 dark:border-zinc-800/40 z-30 space-y-2">
+        <div className="shrink-0 pt-2 pb-10 sm:pb-12 pb-[max(3rem,env(safe-area-inset-bottom))] bg-[var(--bg-color)]/95 backdrop-blur-md border-t border-zinc-800/10 dark:border-zinc-800/40 z-30 space-y-2">
           
           {/* Quick Prompt Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-0.5 py-0.5">
