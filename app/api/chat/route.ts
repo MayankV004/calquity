@@ -59,8 +59,9 @@ export async function POST(req: NextRequest) {
 
     const faqCacheKey = `${account_id}:${lowerQuery}`;
 
-    // bypass RAG & model gateway on cache hit
-    if (!lowerQuery.includes('confirm') && !lowerQuery.includes('yes, escalate')) {
+    // bypass RAG & model gateway on cache hit (never hit FAQ cache for escalation requests)
+    const isEscalationRequest = lowerQuery.includes('escalate') || lowerQuery.includes('human') || lowerQuery.includes('talk to ops') || lowerQuery.includes('manager') || lowerQuery.includes('operator');
+    if (!lowerQuery.includes('confirm') && !lowerQuery.includes('yes, escalate') && !isEscalationRequest) {
       const cached = await getCachedResponse(faqCacheKey);
       if (cached && cached.responseText) {
         toolTraces.push({
@@ -159,6 +160,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Pre-generate 2-Phase Escalation Draft Proposal if user requests human escalation
+    if (isEscalationRequest) {
+      const escProp = await createEscalation(
+        'propose',
+        {
+          reason: 'Customer requested human operations escalation',
+          summary: `Request from account ${account_id}: "${userQuery}"`,
+          ticket_ref: orderMatch ? orderMatch[0].toUpperCase() : ticketMatch ? ticketMatch[0].toUpperCase() : undefined,
+        },
+        context
+      );
+
+      proposalDraft = escProp.proposal;
+
+      toolTraces.push({
+        toolName: 'create_escalation',
+        args: { action: 'propose', account_id },
+        resultSummary: `Prepared Escalation Proposal ${proposalDraft?.proposal_id || 'PROP-9812'}`,
+      });
+    }
+
     // 4. Check for Multi-Tenant Access Violation
     if (orderMatch && !orderInfo) {
       const requestedOrderId = orderMatch[0].toUpperCase();
@@ -196,6 +218,7 @@ export async function POST(req: NextRequest) {
 Current Account ID: ${account_id}
 ${orderInfo ? `Retrieved Order Data: <order_data>${JSON.stringify(orderInfo)}</order_data>` : ''}
 ${ticketInfo ? `Retrieved Ticket Data: <ticket_data>${JSON.stringify(ticketInfo)}</ticket_data>` : ''}
+${proposalDraft ? `PREPARED ESCALATION DRAFT: <escalation_draft>${JSON.stringify(proposalDraft)}</escalation_draft>\nNote: An escalation request proposal draft (${proposalDraft.proposal_id}) HAS ALREADY BEEN PREPARED by the system. State clearly that the escalation request has been drafted and ask the user to click the "Confirm Escalation" button below to submit it to human operations.` : ''}
 
 Retrieved Policy & Agreement Knowledge Base:
 <rag_context>
@@ -275,26 +298,26 @@ STRICT OUTPUT FORMATTING RULES:
           `*Note:* Customer-specific Enterprise Agreements (such as Northstar's) lower the 100% refund threshold to >1 hour delay. Delays due to customer fault are ineligible.`;
         confidenceLevel = 'high';
       }
-    } else if (lowerQuery.includes('escalate') || lowerQuery.includes('human') || lowerQuery.includes('talk to ops') || lowerQuery.includes('manager')) {
-      const escProp = await createEscalation(
-        'propose',
-        {
-          reason: 'Customer requested human operations escalation',
-          summary: `Request from account ${account_id}: "${userQuery}"`,
-          ticket_ref: orderMatch ? orderMatch[0].toUpperCase() : ticketMatch ? ticketMatch[0].toUpperCase() : undefined,
-        },
-        context
-      );
+    } else if (isEscalationRequest || lowerQuery.includes('escalate') || lowerQuery.includes('human') || lowerQuery.includes('talk to ops') || lowerQuery.includes('manager')) {
+      if (!proposalDraft) {
+        const escProp = await createEscalation(
+          'propose',
+          {
+            reason: 'Customer requested human operations escalation',
+            summary: `Request from account ${account_id}: "${userQuery}"`,
+            ticket_ref: orderMatch ? orderMatch[0].toUpperCase() : ticketMatch ? ticketMatch[0].toUpperCase() : undefined,
+          },
+          context
+        );
+        proposalDraft = escProp.proposal;
+        toolTraces.push({
+          toolName: 'create_escalation',
+          args: { action: 'propose', account_id },
+          resultSummary: `Prepared Escalation Proposal ${proposalDraft?.proposal_id || 'PROP-9812'}`,
+        });
+      }
 
-      proposalDraft = escProp.proposal;
-
-      toolTraces.push({
-        toolName: 'create_escalation',
-        args: { action: 'propose', account_id },
-        resultSummary: `Prepared Escalation Proposal ${proposalDraft.proposal_id}`,
-      });
-
-      responseText = `I have prepared an Escalation Request for your account (${account_id}). Please review the escalation draft below and click Confirm Escalation to submit it to our human operations queue.`;
+      responseText = `I have prepared an Escalation Request (${proposalDraft?.proposal_id || 'PROP-9812'}) for your account (${account_id}). Please review the escalation draft below and click **Confirm Escalation** to submit it to our human operations queue.`;
       confidenceLevel = 'high';
     } else {
       const topChunk = searchedDocs.chunks[0];
