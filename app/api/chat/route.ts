@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages, account_id: requestedAccountId } = body;
+    const { messages, account_id: requestedAccountId, thread_id } = body;
 
     // bind account_id from verified session email to prevent IDOR
     const authSession = await auth.api.getSession({ headers: req.headers });
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: "Forbidden: Account access denied" }), { status: 403 });
     }
 
-    const session_id = authSession.session.id;
+    const session_id = thread_id || body.session_id || authSession.session.id;
 
     const context: ToolContext = {
       accountId: account_id,
