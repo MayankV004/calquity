@@ -406,43 +406,61 @@ export default function Home() {
     <div className="h-screen h-[100dvh] max-h-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ease-out bg-[var(--bg-color)] text-[var(--text-main)]">
       
       {/* Mobile & Desktop Responsive Header */}
-      <header className="shrink-0 px-4 sm:px-8 py-3 sm:py-4 transition-all duration-300 bg-[var(--bg-color)]">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
+      <header className="shrink-0 px-3 sm:px-8 py-2 sm:py-3.5 transition-all duration-300 bg-[var(--bg-color)] border-b border-zinc-800/10 dark:border-zinc-800/40">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
           
-          {/* App Title */}
+          {/* App Title & Quick Actions */}
           <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start">
             <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight">
+              <h1 className="text-base sm:text-xl font-bold tracking-tight">
                 ParcelPilot <span className="text-[var(--accent-orange)]">Support</span>
               </h1>
               <p className="text-[10px] sm:text-xs text-[var(--text-sub)] font-medium">Customer Operations Assistant</p>
             </div>
 
-            {/* Mobile Actions (Clear & Theme) */}
+            {/* Mobile Header Actions (Clear, Theme & Auth) */}
             <div className="flex sm:hidden items-center gap-1.5">
               <button
                 onClick={handleClearHistory}
-                className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors bg-[var(--card-bg)]"
+                className="px-2 py-1 rounded-full text-[10px] font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] bg-[var(--card-bg)] border border-zinc-800/10 dark:border-zinc-800/50"
               >
                 Clear
               </button>
               <button
                 onClick={toggleTheme}
-                className="px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)]"
+                className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--card-bg)] text-[var(--text-main)] border border-zinc-800/10 dark:border-zinc-800/50"
               >
                 {theme === 'dark' ? 'Light' : 'Dark'}
               </button>
+              {session?.user ? (
+                <button
+                  onClick={() => authClient.signOut()}
+                  className="px-2 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1"
+                  title={`Logged in as ${session.user.email}`}
+                >
+                  <User className="w-3 h-3" />
+                  <LogOut className="w-3 h-3" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--accent-orange)] text-white flex items-center gap-1 shadow-sm"
+                >
+                  <Lock className="w-3 h-3" />
+                  <span>Auth</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Account Switcher Tabs & Desktop Theme Switcher */}
-          <div className="w-full sm:w-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-            <div className="flex items-center p-1 rounded-full bg-[var(--card-bg)] whitespace-nowrap overflow-x-auto no-scrollbar max-w-full">
+          {/* Account Switcher Tabs & Desktop Actions */}
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <div className="flex items-center p-1 rounded-full bg-[var(--card-bg)] whitespace-nowrap overflow-x-auto no-scrollbar max-w-full border border-zinc-800/10 dark:border-zinc-800/50">
               {ACCOUNTS.map((acc) => (
                 <button
                   key={acc.id}
                   onClick={() => handleSelectAccountTab(acc)}
-                  className={`px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all duration-300 ease-out whitespace-nowrap ${
+                  className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10.5px] sm:text-xs font-semibold transition-all duration-300 ease-out whitespace-nowrap ${
                     selectedAccount.id === acc.id
                       ? 'bg-[var(--accent-orange)] text-white shadow-md shadow-orange-500/20'
                       : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
@@ -454,10 +472,10 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Clear History Button */}
+            {/* Clear History Button (Desktop) */}
             <button
               onClick={handleClearHistory}
-              className="hidden sm:block px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-bg)] shadow-sm whitespace-nowrap"
+              className="hidden sm:block px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-bg)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
             >
               Clear Chat
             </button>
@@ -465,26 +483,26 @@ export default function Home() {
             {/* Desktop Theme Switcher */}
             <button
               onClick={toggleTheme}
-              className="hidden sm:block px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-main)] hover:bg-[var(--panel-bg)] shadow-sm whitespace-nowrap"
+              className="hidden sm:block px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-main)] hover:bg-[var(--panel-bg)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
             >
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
 
-            {/* Authentication Button */}
+            {/* Authentication Button (Desktop) */}
             {session?.user ? (
               <button
                 onClick={() => authClient.signOut()}
-                className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                className="hidden sm:flex px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-all items-center gap-1.5 whitespace-nowrap"
                 title={`Logged in as ${session.user.email}`}
               >
                 <User className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{session.user.name || session.user.email.split('@')[0]}</span>
+                <span>{session.user.name || session.user.email.split('@')[0]}</span>
                 <LogOut className="w-3 h-3 ml-1" />
               </button>
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[var(--accent-orange)] text-white hover:opacity-90 transition-all flex items-center gap-1.5 shadow-md shadow-orange-500/20 whitespace-nowrap"
+                className="hidden sm:flex px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[var(--accent-orange)] text-white hover:opacity-90 transition-all items-center gap-1.5 shadow-md shadow-orange-500/20 whitespace-nowrap"
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span>Sign In</span>
@@ -503,27 +521,27 @@ export default function Home() {
       />
 
       {/* Main Single-Viewport Container */}
-      <main className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-4 sm:px-6 py-2 flex flex-col justify-between gap-2.5 sm:gap-3 overflow-hidden">
+      <main className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 flex flex-col justify-between gap-2 sm:gap-3 overflow-hidden">
         
         {/* Active Account Status Bar */}
-        <div className="shrink-0 p-3 sm:p-3.5 px-4 sm:px-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] sm:text-xs gap-1 sm:gap-2 transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm">
-          <div className="truncate w-full sm:w-auto">
-            <span className="font-bold text-[var(--accent-orange)]">{selectedAccount.name}</span> ({selectedAccount.id}) • Plan: <span className="font-semibold text-[var(--accent-orange)]">{selectedAccount.tier}</span> • CSM: {selectedAccount.csm}
+        <div className="shrink-0 py-2 px-3 sm:py-3 sm:px-5 rounded-xl sm:rounded-2xl flex flex-row items-center justify-between text-[10px] sm:text-xs gap-1.5 transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm border border-zinc-800/10 dark:border-zinc-800/50">
+          <div className="truncate flex-1">
+            <span className="font-bold text-[var(--accent-orange)]">{selectedAccount.name}</span> <span className="hidden sm:inline">({selectedAccount.id})</span> • Plan: <span className="font-semibold text-[var(--accent-orange)]">{selectedAccount.tier}</span> <span className="hidden sm:inline">• CSM: {selectedAccount.csm}</span>
           </div>
-          <div className="font-mono text-[var(--text-sub)] text-[10px] sm:text-[11px]">
-            Snapshot: 2026-08-16 11:00 IST
+          <div className="font-mono text-[var(--text-sub)] text-[9px] sm:text-[11px] shrink-0">
+            Snapshot: 2026-08-16
           </div>
         </div>
 
         {/* Responsive Chat Stream Container */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3.5 no-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto px-0.5 sm:px-1 space-y-3 sm:space-y-3.5 no-scrollbar pb-2">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
               <div
-                className={`max-w-[92%] sm:max-w-2xl rounded-3xl p-4 sm:p-4.5 text-xs sm:text-sm leading-relaxed transition-all duration-300 shadow-sm ${
+                className={`max-w-[94%] sm:max-w-2xl rounded-2xl sm:rounded-3xl p-3.5 sm:p-4.5 text-xs sm:text-sm leading-relaxed transition-all duration-300 shadow-sm ${
                   msg.role === 'user'
                     ? 'bg-[var(--accent-orange)] text-white rounded-br-none font-medium'
-                    : 'bg-[var(--card-bg)] text-[var(--text-main)] rounded-bl-none'
+                    : 'bg-[var(--card-bg)] text-[var(--text-main)] rounded-bl-none border border-zinc-800/10 dark:border-zinc-800/50'
                 }`}
               >
                 {/* Confidence Badge */}
@@ -553,15 +571,15 @@ export default function Home() {
 
                 {/* Tool Trace Text Chips */}
                 {msg.toolTraces && msg.toolTraces.length > 0 && !msg.isThinking && (
-                  <div className="mt-3 pt-3 border-t border-zinc-800/15 space-y-1 text-xs">
+                  <div className="mt-3 pt-2.5 border-t border-zinc-800/15 space-y-1 text-xs">
                     <div className="text-[9px] sm:text-[10px] font-mono uppercase text-[var(--accent-orange)] font-semibold">
                       Executed Tools:
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1">
                       {msg.toolTraces.map((trace, idx) => (
                         <div
                           key={idx}
-                          className="px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-mono bg-[var(--panel-bg)] text-[var(--text-main)] transition-colors duration-200"
+                          className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9.5px] sm:text-[11px] font-mono bg-[var(--panel-bg)] text-[var(--text-main)] transition-colors duration-200"
                         >
                           <span className="font-semibold text-[var(--accent-orange)]">{trace.toolName}()</span> — {trace.resultSummary}
                         </div>
@@ -572,11 +590,11 @@ export default function Home() {
 
                 {/* Escalation Proposal Box */}
                 {msg.proposalDraft && msg.proposalDraft.status === 'pending' && !msg.isThinking && (
-                  <div className="mt-3 p-3.5 sm:p-4.5 rounded-2xl space-y-2.5 border border-[var(--accent-orange)]/40 bg-[var(--panel-bg)] shadow-sm">
-                    <div className="text-xs font-bold text-[var(--accent-orange)] uppercase font-mono">
+                  <div className="mt-3 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-2 border border-[var(--accent-orange)]/40 bg-[var(--panel-bg)] shadow-sm">
+                    <div className="text-[11px] sm:text-xs font-bold text-[var(--accent-orange)] uppercase font-mono">
                       Pending Escalation Proposal ({msg.proposalDraft.proposal_id})
                     </div>
-                    <div className="text-[11px] sm:text-xs font-mono text-[var(--text-sub)] space-y-1">
+                    <div className="text-[10px] sm:text-xs font-mono text-[var(--text-sub)] space-y-1">
                       <div>Account: {msg.proposalDraft.account_id}</div>
                       {msg.proposalDraft.ticket_ref && <div>Reference: {msg.proposalDraft.ticket_ref}</div>}
                       <div>Reason: {msg.proposalDraft.reason}</div>
@@ -585,13 +603,13 @@ export default function Home() {
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         onClick={() => handleConfirmProposal(msg.proposalDraft!.proposal_id)}
-                        className="px-4 py-2 rounded-full bg-[var(--accent-orange)] hover:bg-[var(--accent-orange-hover)] text-white text-[11px] sm:text-xs font-bold transition-all duration-300 shadow-md shadow-orange-500/20"
+                        className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[var(--accent-orange)] hover:bg-[var(--accent-orange-hover)] text-white text-[10.5px] sm:text-xs font-bold transition-all duration-300 shadow-md shadow-orange-500/20"
                       >
                         Confirm Escalation
                       </button>
                       <button
                         onClick={() => handleSend(`Cancel proposal ${msg.proposalDraft!.proposal_id}`)}
-                        className="px-3 py-2 rounded-full text-[11px] sm:text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors"
+                        className="px-2.5 py-1.5 rounded-full text-[10.5px] sm:text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors"
                       >
                         Decline
                       </button>
@@ -605,51 +623,53 @@ export default function Home() {
         </div>
 
         {/* Verification Test Query Pills */}
-        <div className="shrink-0 space-y-1">
+        <div className="shrink-0 space-y-1 py-0.5">
           <div className="text-[9px] sm:text-[10px] font-mono uppercase text-[var(--text-sub)]">
             Suggested Verification Queries:
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <button
               onClick={() => handleSend('Can Northstar cancel ORD-1001 without a cancellation fee? Explain why.')}
-              className="text-[10.5px] sm:text-[11.5px] px-3.5 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap"
+              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
             >
-              "Can Northstar cancel ORD-1001 without a fee?"
+              &quot;Can Northstar cancel ORD-1001 without a fee?&quot;
             </button>
 
             <button
               onClick={() => handleSend('A pickup is three hours late on ORD-1001. Should I get a service credit?')}
-              className="text-[10.5px] sm:text-[11.5px] px-3.5 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap"
+              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
             >
-              "Pickup 3 hours late on ORD-1001. Service credit?"
+              &quot;Pickup 3 hours late on ORD-1001. Service credit?&quot;
             </button>
 
             <button
               onClick={() => handleSend('Can LumenWorks cancel ORD-2001?')}
-              className="text-[10.5px] sm:text-[11.5px] px-3.5 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap"
+              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
             >
-              "Can LumenWorks cancel ORD-2001?"
+              &quot;Can LumenWorks cancel ORD-2001?&quot;
             </button>
           </div>
         </div>
 
         {/* Mobile & Desktop Responsive Input Bar */}
-        <div className="shrink-0 relative pt-1">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={`Ask a question as ${selectedAccount.name}...`}
-            className="w-full rounded-full px-5 sm:px-6 py-3 sm:py-3.5 pr-20 sm:pr-24 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]/50 transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-main)] placeholder-[var(--text-sub)] shadow-sm"
-          />
-          <button
-            onClick={() => handleSend()}
-            disabled={loading || !input.trim()}
-            className="absolute right-2 sm:right-2.5 top-2 sm:top-2.5 bottom-2 sm:bottom-2.5 px-4 sm:px-5 rounded-full bg-[var(--accent-orange)] text-white font-bold text-xs hover:bg-[var(--accent-orange-hover)] disabled:opacity-40 transition-all duration-300 ease-out shadow-md shadow-orange-500/20"
-          >
-            Send
-          </button>
+        <div className="shrink-0 relative pt-1 pb-3 sm:pb-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[var(--bg-color)] z-10">
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={`Ask a question as ${selectedAccount.name}...`}
+              className="w-full rounded-full px-4 sm:px-6 py-2.5 sm:py-3.5 pr-20 sm:pr-24 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]/50 transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-main)] placeholder-[var(--text-sub)] shadow-sm border border-zinc-800/10 dark:border-zinc-800/60"
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={loading || !input.trim()}
+              className="absolute right-1.5 sm:right-2 top-1.5 sm:top-2 bottom-1.5 sm:bottom-2 px-4 sm:px-5 rounded-full bg-[var(--accent-orange)] text-white font-bold text-xs hover:bg-[var(--accent-orange-hover)] disabled:opacity-40 transition-all duration-300 ease-out shadow-md shadow-orange-500/20 flex items-center justify-center min-h-[34px] sm:min-h-[38px]"
+            >
+              Send
+            </button>
+          </div>
         </div>
 
       </main>
