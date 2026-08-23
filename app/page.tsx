@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AuthModal from '@/app/components/AuthModal';
 import { authClient } from '@/lib/auth-client';
-import { Lock, LogOut, User } from 'lucide-react';
+import { Lock, LogOut, User, ArrowUp } from 'lucide-react';
 
 interface ToolTrace {
   toolName: string;
@@ -521,10 +521,10 @@ export default function Home() {
       />
 
       {/* Main Single-Viewport Container */}
-      <main className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 flex flex-col justify-between gap-2 sm:gap-3 overflow-hidden">
+      <main className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-3 sm:px-6 pt-2 pb-0 flex flex-col justify-between overflow-hidden">
         
         {/* Active Account Status Bar */}
-        <div className="shrink-0 py-2 px-3 sm:py-3 sm:px-5 rounded-xl sm:rounded-2xl flex flex-row items-center justify-between text-[10px] sm:text-xs gap-1.5 transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm border border-zinc-800/10 dark:border-zinc-800/50">
+        <div className="shrink-0 py-2 px-3 sm:py-3 sm:px-5 rounded-xl sm:rounded-2xl flex flex-row items-center justify-between text-[10px] sm:text-xs gap-1.5 transition-all duration-300 bg-[var(--card-bg)] text-[var(--text-main)] shadow-sm border border-zinc-800/10 dark:border-zinc-800/50 mb-2">
           <div className="truncate flex-1">
             <span className="font-bold text-[var(--accent-orange)]">{selectedAccount.name}</span> <span className="hidden sm:inline">({selectedAccount.id})</span> • Plan: <span className="font-semibold text-[var(--accent-orange)]">{selectedAccount.tier}</span> <span className="hidden sm:inline">• CSM: {selectedAccount.csm}</span>
           </div>
@@ -534,7 +534,7 @@ export default function Home() {
         </div>
 
         {/* Responsive Chat Stream Container */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-0.5 sm:px-1 space-y-3 sm:space-y-3.5 no-scrollbar pb-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-0.5 sm:px-1 space-y-3.5 no-scrollbar pb-6">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
               <div
@@ -622,53 +622,55 @@ export default function Home() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Verification Test Query Pills */}
-        <div className="shrink-0 space-y-1 py-0.5">
-          <div className="text-[9px] sm:text-[10px] font-mono uppercase text-[var(--text-sub)]">
-            Suggested Verification Queries:
-          </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        {/* ChatGPT Style Floating Bottom Bar */}
+        <div className="shrink-0 pt-2 pb-5 sm:pb-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] bg-[var(--bg-color)]/95 backdrop-blur-md border-t border-zinc-800/10 dark:border-zinc-800/40 z-30 space-y-2">
+          
+          {/* Quick Prompt Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-0.5 py-0.5">
             <button
               onClick={() => handleSend('Can Northstar cancel ORD-1001 without a cancellation fee? Explain why.')}
-              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
+              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50 shrink-0"
             >
               &quot;Can Northstar cancel ORD-1001 without a fee?&quot;
             </button>
 
             <button
               onClick={() => handleSend('A pickup is three hours late on ORD-1001. Should I get a service credit?')}
-              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
+              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50 shrink-0"
             >
               &quot;Pickup 3 hours late on ORD-1001. Service credit?&quot;
             </button>
 
             <button
               onClick={() => handleSend('Can LumenWorks cancel ORD-2001?')}
-              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50"
+              className="text-[10px] sm:text-[11.5px] px-3 py-1.5 rounded-full transition-all duration-300 ease-out bg-[var(--card-bg)] hover:bg-[var(--panel-bg)] text-[var(--text-main)] hover:text-[var(--accent-orange)] shadow-sm whitespace-nowrap border border-zinc-800/10 dark:border-zinc-800/50 shrink-0"
             >
               &quot;Can LumenWorks cancel ORD-2001?&quot;
             </button>
           </div>
-        </div>
 
-        {/* Mobile & Desktop Responsive Input Bar */}
-        <div className="shrink-0 relative pt-1 pb-3 sm:pb-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[var(--bg-color)] z-10">
-          <div className="relative flex items-center">
+          {/* Floating ChatGPT Style Pill Input */}
+          <div className="relative flex items-center bg-[var(--card-bg)] rounded-full p-1.5 sm:p-2 border border-zinc-800/20 dark:border-zinc-800/60 shadow-lg focus-within:ring-2 focus-within:ring-[var(--accent-orange)]/40 transition-all duration-300">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={`Ask a question as ${selectedAccount.name}...`}
-              className="w-full rounded-full px-4 sm:px-6 py-2.5 sm:py-3.5 pr-20 sm:pr-24 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]/50 transition-all duration-300 ease-out bg-[var(--card-bg)] text-[var(--text-main)] placeholder-[var(--text-sub)] shadow-sm border border-zinc-800/10 dark:border-zinc-800/60"
+              placeholder={`Ask ParcelPilot as ${selectedAccount.name}...`}
+              className="w-full bg-transparent px-4 text-sm sm:text-base focus:outline-none text-[var(--text-main)] placeholder-[var(--text-sub)]"
             />
             <button
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}
-              className="absolute right-1.5 sm:right-2 top-1.5 sm:top-2 bottom-1.5 sm:bottom-2 px-4 sm:px-5 rounded-full bg-[var(--accent-orange)] text-white font-bold text-xs hover:bg-[var(--accent-orange-hover)] disabled:opacity-40 transition-all duration-300 ease-out shadow-md shadow-orange-500/20 flex items-center justify-center min-h-[34px] sm:min-h-[38px]"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--accent-orange)] hover:bg-[var(--accent-orange-hover)] text-white disabled:opacity-30 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-300 flex items-center justify-center shrink-0 shadow-md shadow-orange-500/20"
+              title="Send message"
             >
-              Send
+              <ArrowUp className="w-5 h-5 stroke-[2.5]" />
             </button>
+          </div>
+
+          <div className="text-[9.5px] sm:text-[10px] text-center text-[var(--text-sub)] font-medium">
+            ParcelPilot AI Operations Agent • Multi-Tenant Enterprise Security
           </div>
         </div>
 
