@@ -1,8 +1,33 @@
 # ParcelPilot AI Customer Support Agent 🚀
 ### First-Round AI Agent Assessment — CalQuity
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-parcelpilot--delta.vercel.app-orange?style=for-the-badge&logo=vercel)](https://parcelpilot-delta.vercel.app)
+[![Video Walkthrough](https://img.shields.io/badge/Video%20Demo-Google%20Drive-blue?style=for-the-badge&logo=google-drive)](https://drive.google.com/file/d/1Pt4BJ5vvv5khVgWL-smXj6Bni0v7BtAH/view?usp=sharing)
+
+> **🚀 Deployed Application:** [https://parcelpilot-delta.vercel.app](https://parcelpilot-delta.vercel.app)  
+> **📹 Video Walkthrough Demo:** [https://drive.google.com/file/d/1Pt4BJ5vvv5khVgWL-smXj6Bni0v7BtAH/view?usp=sharing](https://drive.google.com/file/d/1Pt4BJ5vvv5khVgWL-smXj6Bni0v7BtAH/view?usp=sharing)
+
 A production-grade, multi-tenant **AI Customer Support Agent System** built for **ParcelPilot** (B2B Logistics Platform). Powered by **Next.js 16 (App Router)**, **TypeScript**, **Vercel AI SDK**, **Neon PostgreSQL with `pgvector` (HNSW indexing)** via **Drizzle ORM**, **Upstash Redis REST** (rate limiting & semantic caching), and **Better Auth** (`better-auth`) for enterprise session authentication.
 
+---
+
+## 📌 Table of Contents (Index)
+- [🌟 Key System Capabilities & Architecture](#-key-system-capabilities--architecture)
+- [🏛️ Architecture Note (CalQuity Required Deliverable)](#-architecture-note-calquity-required-deliverable)
+  - [Agent & Tool Design](#agent--tool-design)
+  - [Document & Structured-Data Handling](#document--structured-data-handling)
+  - [Major Technical Trade-Offs](#major-technical-trade-offs)
+  - [Why Vercel AI SDK Instead of LangChain / LangGraph?](#-why-vercel-ai-sdk-instead-of-langchain--langgraph)
+  - [LLM Gateway & Fallback Models Hierarchy](#-llm-gateway--fallback-models-hierarchy)
+- [🔒 Security Architecture & Verified Audit Safeguards](#-security-architecture--verified-audit-safeguards)
+- [💡 Product Note (CalQuity Required Deliverable)](#-product-note-calquity-required-deliverable)
+- [🛠️ AI Tool Usage Statement](#%EF%B8%8F-ai-tool-usage-statement)
+- [🚀 Quick Start & Local Setup](#-quick-start--local-setup)
+- [📁 Repository Directory Structure](#-repository-directory-structure)
+- [🧪 Automated System & CalQuity Assessment Verification Results](#-automated-system--calquity-assessment-verification-results)
+- [✉️ Contact & Submission Info](#%EF%B8%8F-contact--submission-info)
+
+---
 
 ## 🌟 Key System Capabilities & Architecture
 
@@ -52,6 +77,12 @@ Access control is enforced **in the data & tool layer** (`WHERE account_id = con
 
 ### 4. 2-Phase Confirmation Before State-Changing Actions
 State-changing actions generate a `pending` escalation proposal (`PROP-XXXX`). The UI renders an interactive **Confirm Escalation** banner. Action is committed to PostgreSQL ONLY when the user explicitly clicks confirm.
+
+### 5. Persistent ChatGPT-Style Sidebar & Account-Bound Thread History
+Every conversation session is assigned a unique Thread ID (`THREAD-XXXX`) and backed by Neon PostgreSQL (`chatSessions` & `chatMessages` tables queried via `/api/chat/history`).
+- **Account Isolation:** Chat history is strictly scoped to the active account (`ACCT-001`, `ACCT-002`, `ACCT-003`). Switching accounts instantly filters past threads.
+- **ChatGPT-Style Sidebar (`ChatSidebar.tsx`):** Users can open/collapse the sidebar (`≡ Threads`), start new chats (`+ New Chat`), select past threads, auto-title conversations, and clear history.
+- **Authentication Guardrail:** Chat history and past threads are hidden for unauthenticated users until they sign in.
 
 ---
 
@@ -247,8 +278,47 @@ calquity/
 
 ---
 
+## 🧪 Automated System & CalQuity Assessment Verification Results
+
+Run the automated test suite locally to verify all PDF assessment requirements and core system capabilities:
+
+```bash
+# 1. Test CalQuity PDF Assessment Requirements & Example Queries
+npm run test:calquity
+
+# 2. Test General System Integration, Vector Search & Security Guardrails
+npm run test:suite
+```
+
+### 📋 Verified Output Log (`npm run test:calquity`)
+```text
+================================================================
+📋 CALQUITY AI ENGINEER ASSESSMENT — DELIVERABLES VERIFICATION TEST
+================================================================
+✅ [PASS 1] Requirement 1: 5-Tier Authority Hierarchy & Data Chunks in Neon Postgres
+   └─ Found 8 chunks covering Tier 1 Enterprise Agreements, Tier 2 SOP v4, and Tier 4 Deprecated policies.
+✅ [PASS 2] Requirement 2: Data-Layer Access Control & Multi-Tenant Privacy Guardrail
+   └─ Northstar retrieved ORD-1001, while LumenWorks cross-tenant request returned 0 records.
+✅ [PASS 3] Requirement 3: Three Core Agent Tools (search_documents, query_account_data, create_escalation)
+   └─ Tool 1 (RAG): 3 chunks | Tool 2 (SQL): orders | Tool 3 (Action): PROP-6451
+✅ [PASS 4] Requirement 4: 2-Phase Confirmation Before State-Changing Actions
+   └─ Proposal generated in PENDING state (PROP-6697) -> Committed ONLY upon explicit user CONFIRMATION.
+✅ [PASS 5] Requirement 5: PDF Example Query 1 (Northstar ORD-1001 Cancellation Fee Exemption)
+   └─ Found Enterprise Agreement override (Authority Rank 1) confirming free cancellation up to 2h before pickup.
+✅ [PASS 6] Requirement 5: PDF Example Query 2 (3-Hour Late Pickup Carrier Fault SLA Credit Math)
+   └─ Retrieved SOP v4 & Enterprise SLA rules ($15/hr credit calculation = $45 total credit).
+
+================================================================
+📊 CALQUITY ASSESSMENT SUMMARY: 6/6 REQUIREMENTS VERIFIED (100% SUCCESS)
+================================================================
+```
+
+---
+
 ## ✉️ Contact & Submission Info
 
 - **Author:** Mayank Verma
 - **Role Application:** AI Engineer (AI Systems) — CalQuity
+- **Deployed App:** [https://parcelpilot-delta.vercel.app](https://parcelpilot-delta.vercel.app)
+- **Video Walkthrough Demo:** [https://drive.google.com/file/d/1Pt4BJ5vvv5khVgWL-smXj6Bni0v7BtAH/view?usp=sharing](https://drive.google.com/file/d/1Pt4BJ5vvv5khVgWL-smXj6Bni0v7BtAH/view?usp=sharing)
 - **Repository:** [https://github.com/MayankV004/calquity](https://github.com/MayankV004/calquity)

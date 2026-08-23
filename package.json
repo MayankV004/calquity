@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:ingest": "npx tsx scripts/ingest.ts"
+    "db:ingest": "npx tsx scripts/ingest.ts",
+    "test:suite": "npx tsx scripts/test_agent.ts",
+    "test:calquity": "npx tsx scripts/test_calquity_assessment.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.45",
